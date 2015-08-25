@@ -1,21 +1,24 @@
-""" uci parsing """
+# -*- encoding: utf-8 -*-
 
 import logging
-import re
 import json
 
 
 class UciError(RuntimeError):
     pass
 
+
 class UciWrongTypeError(UciError):
     pass
+
 
 class UciNotFoundError(UciError):
     pass
 
+
 class UciParseError(UciError):
     pass
+
 
 class Config(object):
     def __init__(self, uci_type, name, anon):
@@ -70,38 +73,41 @@ class Config(object):
         export.append('\n')
         return ''.join(export)
 
-    def export_dict(self, forjson = False, foradd = False):
+    def export_dict(self, forjson=False, foradd=False):
         export = {}
         export_keys = self.keys
         if forjson:
-            export['.name']  = self.name
-            export['.type']  = self.uci_type
+            export['.name'] = self.name
+            export['.type'] = self.uci_type
             export['.anonymous'] = self.anon
-            for i,j in export_keys.items():
+            for i, j in export_keys.items():
                 export[i] = j
         elif foradd:
-            export['name']    = self.name
-            export['type']    = self.uci_type
-            export['values']  = export_keys
+            export['name'] = self.name
+            export['type'] = self.uci_type
+            export['values'] = export_keys
         else:
             export['section'] = self.name
-            export['type']    = self.uci_type
-            export['values']  = export_keys
+            export['type'] = self.uci_type
+            export['values'] = export_keys
         return export
 
     def __repr__(self):
         return "Config[%s:%s] %s" % (self.uci_type, self.name, repr(self.keys))
 
+
 class Package(dict):
     def __init__(self, name):
-        super().__init__()
+        super(Package, self).__init__()
         self.name = name
 
     def add_config(self, config):
         self[config.name] = config
 
+
 class Uci(object):
     logger = logging.getLogger('uci')
+
     def __init__(self):
         self.packages = {}
 
@@ -132,13 +138,13 @@ class Uci(object):
         return "".join(export)
 
     def diff(self, new):
-        new_packages    = {}
-        new_configs     = {}
-        old_packages    = {}
-        old_configs     = {}
-        new_keys        = {}
-        old_keys        = {}
-        changed_keys    = {}
+        new_packages = {}
+        new_configs = {}
+        old_packages = {}
+        old_configs = {}
+        new_keys = {}
+        old_keys = {}
+        changed_keys = {}
 
         # find new package keys
         for key in new.packages.keys():
@@ -153,14 +159,14 @@ class Uci(object):
                         old_options = self.packages[key][confkey].export_dict(forjson=True)
                         for option_key, option_value in new_options.items():
                             if not (option_key in old_options.keys()):
-                                new_keys[(key, confkey, option_key)]=option_value
+                                new_keys[(key, confkey, option_key)] = option_value
                             else:
                                 if option_value != old_options[option_key]:
                                     changed_keys[(key, confkey, option_key)] =\
-                                        (old_options[option_key],option_value)
+                                        (old_options[option_key], option_value)
                         for option_key, option_value in old_options.items():
                             if not (option_key in new_options.keys()):
-                                old_keys[(key, confkey, option_key)]=option_value
+                                old_keys[(key, confkey, option_key)] = option_value
 
         # find old package keys
         for key in self.packages.keys():
@@ -190,23 +196,24 @@ class Uci(object):
             for config in export_tree[package]['values']:
                 config = export_tree[package]['values'][config]
                 anon = config.pop(".anonymous")
-                cur_config = Config(config.pop('.type'), config.pop('.name'),anon=='true')
+                cur_config = Config(config.pop('.type'), config.pop('.name'), anon == 'true')
                 cur_package.add_config(cur_config)
                 for key in config.keys():
-                    if isinstance(config[key],str):
+                    if isinstance(config[key], str):
                         try:
-                            config[key] = config[key].replace("'",'"')
+                            config[key] = config[key].replace("'", '"')
                             newval = json.loads(config[key])
                         except ValueError:
                             newval = config[key]
                         config[key] = newval
-                    cur_config.set_option(key,config[key])
+                    cur_config.set_option(key, config[key])
                        # if isinstance(config[key], list):
                        #     cur_config.add_list(key,config[key])
                        # else:
                        #     cur_config.set_option(key,config[key])
+
     def export_json(self):
-        export={}
+        export = {}
         for packagename, package in self.packages.items():
             export[packagename] = {}
             export[packagename]['values'] = {}
